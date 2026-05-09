@@ -33,28 +33,28 @@ export const coursesByBatch = {
 /** Module rows per batch (same structure; topics/status vary) */
 export const modulesByBatch = {
   '1': [
-    { id: '1', label: 'Module 01', topic: 'Programming', unit: 'Unit 01', status: 'Completed' },
-    { id: '2', label: 'Module 02', topic: 'Networking', unit: 'Unit 01', status: 'Ongoing' },
-    { id: '3', label: 'Module 03', topic: 'Database', unit: 'Unit 01', status: 'Pending' },
-    { id: '4', label: 'Module 04', topic: 'Professional Practice', unit: 'Unit 01', status: 'Pending' },
+    { id: '1', label: 'course 01', topic: 'Programming', unit: 'Unit 01', status: 'Completed' },
+    { id: '2', label: 'course 02', topic: 'Networking', unit: 'Unit 01', status: 'Ongoing' },
+    { id: '3', label: 'course 03', topic: 'Database', unit: 'Unit 01', status: 'Pending' },
+    { id: '4', label: 'course 04', topic: 'Professional Practice', unit: 'Unit 01', status: 'Pending' },
   ],
   '2': [
-    { id: '1', label: 'Module 01', topic: 'Python & Tools', unit: 'Unit 01', status: 'Ongoing' },
-    { id: '2', label: 'Module 02', topic: 'Statistics for DS', unit: 'Unit 02', status: 'Pending' },
-    { id: '3', label: 'Module 03', topic: 'Machine Learning Intro', unit: 'Unit 02', status: 'Pending' },
-    { id: '4', label: 'Module 04', topic: 'Capstone Prep', unit: 'Unit 03', status: 'Pending' },
+    { id: '1', label: 'course 01', topic: 'Python & Tools', unit: 'Unit 01', status: 'Ongoing' },
+    { id: '2', label: 'course 02', topic: 'Statistics for DS', unit: 'Unit 02', status: 'Pending' },
+    { id: '3', label: 'course 03', topic: 'Machine Learning Intro', unit: 'Unit 02', status: 'Pending' },
+    { id: '4', label: 'course 04', topic: 'Capstone Prep', unit: 'Unit 03', status: 'Pending' },
   ],
   '3': [
-    { id: '1', label: 'Module 01', topic: 'Market Research', unit: 'Unit 01', status: 'Completed' },
-    { id: '2', label: 'Module 02', topic: 'Metrics & KPIs', unit: 'Unit 01', status: 'Ongoing' },
-    { id: '3', label: 'Module 03', topic: 'Campaign Planning', unit: 'Unit 02', status: 'Pending' },
-    { id: '4', label: 'Module 04', topic: 'Portfolio Review', unit: 'Unit 02', status: 'Pending' },
+    { id: '1', label: 'course 01', topic: 'Market Research', unit: 'Unit 01', status: 'Completed' },
+    { id: '2', label: 'course 02', topic: 'Metrics & KPIs', unit: 'Unit 01', status: 'Ongoing' },
+    { id: '3', label: 'course 03', topic: 'Campaign Planning', unit: 'Unit 02', status: 'Pending' },
+    { id: '4', label: 'course 04', topic: 'Portfolio Review', unit: 'Unit 02', status: 'Pending' },
   ],
   '4': [
-    { id: '1', label: 'Module 01', topic: 'System Design', unit: 'Unit 01', status: 'Ongoing' },
-    { id: '2', label: 'Module 02', topic: 'Secure Coding', unit: 'Unit 01', status: 'Pending' },
-    { id: '3', label: 'Module 03', topic: 'Threat Modeling', unit: 'Unit 02', status: 'Pending' },
-    { id: '4', label: 'Module 04', topic: 'Industry Project', unit: 'Unit 03', status: 'Pending' },
+    { id: '1', label: 'course 01', topic: 'System Design', unit: 'Unit 01', status: 'Ongoing' },
+    { id: '2', label: 'course 02', topic: 'Secure Coding', unit: 'Unit 01', status: 'Pending' },
+    { id: '3', label: 'course 03', topic: 'Threat Modeling', unit: 'Unit 02', status: 'Pending' },
+    { id: '4', label: 'course 04', topic: 'Industry Project', unit: 'Unit 03', status: 'Pending' },
   ],
 }
 

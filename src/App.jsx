@@ -1,5 +1,9 @@
 import './App.css'
 import { Link, Navigate, Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { collection, getDocs } from 'firebase/firestore'
+import { onAuthStateChanged } from 'firebase/auth'
+import { db, auth } from './firebase'
 import AssignmentTable from './components/AssignmentTable'
 import CourseContent from './components/CourseContent'
 import Signup from './components/Signup'
@@ -65,8 +69,75 @@ function BatchPills({ basePath }) {
 function MyCoursesScreen() {
   const [searchParams] = useSearchParams()
   const batchId = searchParams.get('batch') || '1'
-  const courses = getCoursesForBatch(batchId)
-  const modules = getModulesForBatch(batchId)
+  const [courses, setCourses] = useState(getCoursesForBatch(batchId))
+  const [modules, setModules] = useState([])
+  const [loadingModules, setLoadingModules] = useState(false)
+
+  useEffect(() => {
+    setCourses(getCoursesForBatch(batchId))
+
+    // If Batch 01, try to fetch modules from Firestore collection.
+    // Collection name can be changed here if yours differs.
+    // Default set to the collection name you created in Firestore: 'add_course'
+    const FIRESTORE_COLLECTION = 'add_course'
+
+    if (String(batchId) === '1') {
+      let mounted = true
+      setLoadingModules(true)
+
+      // Only attempt to read from Firestore once we have an authenticated user.
+      const unsubAuth = onAuthStateChanged(auth, async (user) => {
+        if (!mounted) return
+        if (!user) {
+          // Not signed in: do not attempt to read (prevents permission errors)
+          setModules([])
+          setLoadingModules(false)
+          return
+        }
+
+        try {
+          const snap = await getDocs(collection(db, FIRESTORE_COLLECTION))
+          const list = snap.docs.map((d) => d.data())
+          const mapped = list.map((doc) => {
+            // Support multiple possible field namings coming from Firestore UI
+            const courseId = doc.courseId ?? doc['course Id'] ?? doc['course_id'] ?? doc.id
+            const courseName = doc.courseName ?? doc['course name'] ?? doc['courseName'] ?? ''
+            const unitName = doc.unitName ?? doc.unit ?? doc['unit'] ?? ''
+            const status = doc.status ?? doc['Status'] ?? ''
+            const rawVr = doc.vrMode ?? doc['Vr mode'] ?? doc['vr mode'] ?? doc['VrMode'] ?? doc['VR mode']
+            const vrMode = rawVr === true || String(rawVr).toLowerCase() === 'true'
+            return {
+              id: String(courseId ?? Math.random().toString(36).slice(2, 8)),
+              label: courseId ? String(courseId) : `course ${doc.id ?? ''}`,
+              topic: courseName,
+              unit: unitName,
+              status,
+              vrMode,
+              // allow document to provide attachments/description/videos counts
+              attachments: Array.isArray(doc.attachments) ? doc.attachments : [],
+              description: doc.description ?? doc['Description'] ?? '',
+              videos: doc.videos ?? doc.videosCount ?? (Array.isArray(doc.attachments) ? doc.attachments.length : 0),
+            }
+          })
+          if (mounted) setModules(mapped)
+        } catch (err) {
+          console.error('Failed to load modules from Firestore', err)
+          if (mounted) setModules([])
+        } finally {
+          if (mounted) setLoadingModules(false)
+        }
+      })
+
+      return () => {
+        mounted = false
+        try { unsubAuth() } catch (_) {}
+      }
+    }
+
+    // non-batch-1: use local modules
+    setModules(getModulesForBatch(batchId))
+  }, [batchId])
+
   return (
     <ShellLayout title="My Courses">
       <CourseGrid courses={courses} />
@@ -77,7 +148,7 @@ function MyCoursesScreen() {
             {modules.map((m) => (
               <tr key={m.id}>
                 <td>
-                  <Link className="module-link" to={`/my-courses/module/${m.id}?batch=${batchId}`}>
+                  <Link className="module-link" to={`/my-courses/module/${encodeURIComponent(m.id)}?batch=${batchId}`} state={{ module: m }}>
                     ☑ {m.label}
                   </Link>
                 </td>
@@ -85,9 +156,15 @@ function MyCoursesScreen() {
                 <td>{m.unit}</td>
                 <td>{m.status}</td>
                 <td className="right">
-                  <Link className="btn-mini as-link-mini" to="/vr">
-                    VR
-                  </Link>
+                  {m.vrMode ? (
+                    <Link className="btn-mini as-link-mini" to="/vr">
+                      VR
+                    </Link>
+                  ) : (
+                    <button className="btn-mini as-link-mini" disabled>
+                      VR
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -128,7 +205,44 @@ function CourseModuleScreen() {
   const { moduleId } = useParams()
   const [searchParams] = useSearchParams()
   const batchId = searchParams.get('batch') || '1'
-  const data = getModuleCourseContent(moduleId, batchId)
+  const location = useLocation()
+  let data = getModuleCourseContent(moduleId, batchId)
+
+  // If module not found in local mock data, but the Link passed module data via state (from Firestore),
+  // construct a minimal `data` object so CourseContent can render.
+  if (!data && location.state && location.state.module) {
+    const m = location.state.module
+    const meta = {
+      label: m.label || moduleId,
+      topic: m.topic || '',
+      unit: m.unit || '',
+      batchId: batchId,
+    }
+    const lectures = [
+      {
+        id: `${moduleId}-l1`,
+        number: 1,
+        title: m.topic ? `Lecture: ${m.topic}` : `Lecture 01`,
+        helpingContent: 0,
+        videos: m.videos || 0,
+        assignments: 0,
+        openQuiz: 0,
+        description: m.description || '',
+        attachments: m.attachments || [],
+        assignmentItems: [],
+        quizItems: [],
+      },
+    ]
+    const summary = {
+      lectures: lectures.length,
+      videos: lectures.reduce((acc, l) => acc + (l.videos || 0), 0),
+      helpingContent: lectures.reduce((acc, l) => acc + (l.helpingContent || 0), 0),
+      assignments: lectures.reduce((acc, l) => acc + (l.assignments || 0), 0),
+      openQuiz: lectures.reduce((acc, l) => acc + (l.openQuiz || 0), 0),
+    }
+    data = { meta, lectures, summary }
+  }
+
   if (!data) return <Navigate to={`/my-courses?batch=${batchId}`} replace />
   return (
     <ShellLayout title={`${data.meta.topic} · ${data.meta.label}`}>
@@ -227,18 +341,64 @@ function App() {
         element={
           <ShellLayout title="Time Table">
             <StatGrid items={[
-              { label: 'Live Class', center: true },
-              { label: 'Recorded Class', center: true },
+              // { label: 'Live Class', center: true },
+              // { label: 'Recorded Class', center: true },
             ]} />
+              {/* <div className="stats-2">
+                <div className="stat center">
+                  <span>Live Class</span>
+                  <div className="stat-links">
+                    <a className="micro-link" href="#" data-join-url="">Live Class 1</a>
+                    <a className="micro-link" href="#" data-join-url="">Live Class 2</a>
+                  </div>
+                </div>
+                <div className="stat center">
+                  <span>Recorded Class</span>
+                  <div className="stat-links">
+                    <a className="micro-link" href="#" data-record-url="">Recorded 1</a>
+                    <a className="micro-link" href="#" data-record-url="">Recorded 2</a>
+                  </div>
+                </div>
+              </div> */}
             <PageCard className="table-wrap">
-              <table>
-                <thead><tr><th>Lecture Name</th><th>Subject</th><th>Start Time</th><th>End Time</th><th>Date</th></tr></thead>
-                <tbody>
-                  <tr><td>John</td><td>English</td><td>9.00</td><td>1.00</td><td>20.10.2023</td></tr>
-                  <tr><td>Doe</td><td>Programming</td><td>9.00</td><td>1.00</td><td>21.10.2023</td></tr>
-                  <tr><td>Sam</td><td>Database</td><td>9.00</td><td>1.00</td><td>22.10.2023</td></tr>
-                </tbody>
-              </table>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Lecture Name</th>
+                      <th>Subject</th>
+                      <th>Start Time</th>
+                      <th>End Time</th>
+                      <th>Date</th>
+                      <th>Join</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>John</td>
+                      <td>English</td>
+                      <td>9.00</td>
+                      <td>1.00</td>
+                      <td>20.10.2023</td>
+                      <td><a className="as-link" href="#" data-join-url="">Join Now</a></td>
+                    </tr>
+                    <tr>
+                      <td>Doe</td>
+                      <td>Programming</td>
+                      <td>9.00</td>
+                      <td>1.00</td>
+                      <td>21.10.2023</td>
+                      <td><a className="as-link" href="#" data-join-url="">Join Now</a></td>
+                    </tr>
+                    <tr>
+                      <td>Sam</td>
+                      <td>Database</td>
+                      <td>9.00</td>
+                      <td>1.00</td>
+                      <td>22.10.2023</td>
+                      <td><a className="as-link" href="#" data-join-url="">Join Now</a></td>
+                    </tr>
+                  </tbody>
+                </table>
             </PageCard>
           </ShellLayout>
         }
@@ -288,11 +448,11 @@ function App() {
               <div className="tile">Attendence<br />97%</div>
               <div className="tile">Courses enrolled<br />3</div>
             </div>
-            <PageCard className="settings-box"><h2>Accounts Settings</h2><p>Change Password</p><p>Notifications</p><p>Privacy Settings</p></PageCard>
+            <PageCard className="settings-box"><h2>Accounts Settings</h2><p>Change Password (Connect to your domain administrator)       --{'>'} email at (admin@pucit.edu.pk)</p></PageCard>
           </ShellLayout>
         }
       />
-      <Route path="/vr" element={<ShellLayout title="VR"><PageCard className="vr-box">Processing on VR</PageCard></ShellLayout>} />
+      <Route path="/vr" element={<ShellLayout title="VR"><PageCard className="vr-box"><a className=" as-link" href="/videos%20using%20code/index.html" target="_blank" rel="noreferrer">Go to VR Mode</a></PageCard></ShellLayout>} />
     </Routes>
   )
 }
