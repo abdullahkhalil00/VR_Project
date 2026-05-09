@@ -1,0 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+html, body, #root {
+  margin: 0;
+  min-height: 100%;
+}
+
+html {
+  font-size: 16px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+h1 { font-size: clamp(1.5rem, 2vw, 1.9rem); }
+h2 { font-size: clamp(1.2rem, 1.6vw, 1.45rem); }
+h3 { font-size: clamp(1rem, 1.2vw, 1.1rem); }
+p { margin: 0; }

@@ -1,0 +1,149 @@
+.signup-form {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.input-row {
+  margin-bottom: 0.15rem;
+}
+
+.pw-wrap {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.show-btn {
+  height: 44px;
+  padding: 0 0.75rem;
+  background: #eef4ff;
+  border: 1px solid #d7e3f5;
+  border-radius: 10px;
+  color: #1d4ed8;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.show-btn:hover {
+  background: #e4eeff;
+  border-color: #c2d6f5;
+}
+
+.field-error {
+  color: #dc2626;
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+}
+
+.pw-strength {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.strength-bars {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.strength-bars span {
+  width: 28px;
+  height: 5px;
+  background: #e6eef5;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.strength-bars.s0 span {
+  background: #e6eef5;
+}
+
+.strength-bars.s1 span:nth-child(-n+1) {
+  background: #f59e0b;
+}
+
+.strength-bars.s2 span:nth-child(-n+2) {
+  background: #f59e0b;
+}
+
+.strength-bars.s3 span:nth-child(-n+3) {
+  background: #10b981;
+}
+
+.strength-bars.s4 span {
+  background: #10b981;
+}
+
+.hint {
+  color: #60708a;
+  font-size: 0.74rem;
+}
+
+.agree-row {
+  gap: 0.45rem;
+  align-items: flex-start;
+  margin-top: 0.2rem;
+}
+
+.agree-text {
+  margin-left: 0.4rem;
+  font-size: 0.83rem;
+  color: #4c617d;
+}
+
+.agree-text a {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.alt {
+  margin-top: 0.25rem;
+  text-align: center;
+  color: #556779;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.alt span {
+  font-size: 0.83rem;
+}
+
+.socials {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+}
+
+.btn-outline {
+  background: #fff;
+  border: 1px solid #cfdaea;
+  padding: 0.58rem 0.9rem;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #243b5d;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-outline:hover {
+  border-color: #b4c9e6;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(36, 59, 93, 0.1);
+}
+
+.auth-card.signup {
+  width: min(540px, 100%);
+}
+
+@media (max-width: 700px) {
+  .pw-wrap {
+    flex-wrap: wrap;
+  }
+
+  .show-btn {
+    width: 100%;
+  }
+}
