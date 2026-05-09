@@ -192,7 +192,7 @@ function AuthLayout({ title, children, footer, className }) {
   return (
     <main className="auth-wrap">
       <section className={"auth-card" + (className ? ` ${className}` : '')}>
-        <div className="logo-mark">OXF</div>
+        <div className="logo-mark">MOOC's</div>
         <h1 className="auth-title">{title}</h1>
         {children}
         <p className="auth-footer">{footer}</p>
@@ -256,7 +256,7 @@ function ShellLayout({ title, children }) {
   return (
     <main className="app">
       <aside className="sidebar">
-        <div className="brand"><div className="logo-mark">OXF</div><div className="hamburger" /></div>
+        <div className="brand"><div className="logo-mark">MOOC's</div><div className="hamburger" /></div>
         <div className="profile-chip"><div className="avatar" /><div><p>Hi, Alex</p><small>E173037</small></div></div>
         <nav className="menu">
           {menuItems.map(([label, path]) => (
