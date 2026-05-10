@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAM Offset Visualization 3D</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #020b18;
+    color: #00ffe7;
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+  }
+
+  /* HUD Overlay */
+  #hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 18px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  #title-block h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 20px #00ffe7aa;
+  }
+  #title-block p {
+    font-size: 0.72rem;
+    color: #00ffe799;
+    letter-spacing: 0.2em;
+    margin-top: 3px;
+  }
+
+  #info-panel {
+    background: rgba(0,20,40,0.85);
+    border: 1px solid #00ffe733;
+    border-radius: 6px;
+    padding: 14px 18px;
+    min-width: 260px;
+    backdrop-filter: blur(8px);
+    pointer-events: all;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 8px;
+    font-size: 0.78rem;
+  }
+  .info-label { color: #00ffe766; }
+  .info-val { color: #00ffe7; font-weight: bold; letter-spacing: 0.05em; }
+  .info-val.highlight { color: #ff6b35; text-shadow: 0 0 8px #ff6b3588; }
+  .info-val.green { color: #39ff14; text-shadow: 0 0 8px #39ff1488; }
+
+  #bottom-hud {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 14px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  #formula-box {
+    background: rgba(0,20,40,0.85);
+    border: 1px solid #ff6b3544;
+    border-radius: 6px;
+    padding: 12px 18px;
+    backdrop-filter: blur(8px);
+  }
+  #formula-box .f-title {
+    font-size: 0.65rem;
+    color: #ff6b3599;
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+  }
+  #formula-box .f-eq {
+    font-size: 1.0rem;
+    color: #fff;
+  }
+  #formula-box .f-eq span { color: #ff6b35; }
+  #formula-box .f-eq em { color: #39ff14; font-style: normal; }
+
+  #legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: all;
+  }
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+  }
+  .leg-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  #controls {
+    position: fixed;
+    left: 50%;
+    bottom: 80px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 10;
+  }
+  button {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 18px;
+    background: rgba(0,255,231,0.08);
+    border: 1px solid #00ffe755;
+    color: #00ffe7;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+    pointer-events: all;
+  }
+  button:hover { background: rgba(0,255,231,0.2); border-color: #00ffe7; }
+  button.active { background: rgba(0,255,231,0.25); border-color: #00ffe7; color: #fff; }
+
+  #step-desc {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+    z-index: 5;
+    transition: opacity 0.5s;
+  }
+  #step-desc .step-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.1rem;
+    color: #fff;
+    text-shadow: 0 0 30px #00ffe7;
+    background: rgba(0,10,20,0.7);
+    padding: 8px 20px;
+    border-radius: 4px;
+    border: 1px solid #00ffe722;
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div id="hud">
+  <div id="title-block">
+    <h1>RAM MEMORY OFFSET</h1>
+    <p>INTERACTIVE 3D VISUALIZATION • BASE + OFFSET = TARGET</p>
+  </div>
+  <div id="info-panel">
+    <div class="info-row">
+      <span class="info-label">BASE ADDRESS</span>
+      <span class="info-val" id="v-base">0x1000</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">OFFSET</span>
+      <span class="info-val highlight" id="v-offset">+0x0000</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">TARGET ADDRESS</span>
+      <span class="info-val green" id="v-target">0x1000</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">DATA</span>
+      <span class="info-val" id="v-data">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">STATUS</span>
+      <span class="info-val green" id="v-status">READY</span>
+    </div>
+  </div>
+</div>
+
+<div id="step-desc"><div class="step-text" id="step-text">RAM blocks tayyar hain — SEARCH dabao</div></div>
+
+<div id="controls">
+  <button id="btn-auto" class="active" onclick="toggleAuto()">⟳ AUTO PLAY</button>
+  <button onclick="runSearch()">▶ SEARCH</button>
+  <button onclick="resetAll()">↺ RESET</button>
+</div>
+
+<div id="bottom-hud">
+  <div id="formula-box">
+    <div class="f-title">ADDRESS FORMULA</div>
+    <div class="f-eq">
+      <span>BASE</span> (0x1000) + <span>OFFSET</span> (N × 4) = <em>TARGET</em>
+    </div>
+  </div>
+  <div id="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#00ffe7"></div> RAM Block (free)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ff6b35"></div> Current Offset</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#39ff14"></div> Target Found!</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#4488ff"></div> Searched</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ─── Scene Setup ───────────────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020b18);
+scene.fog = new THREE.FogExp2(0x020b18, 0.045);
+
+const W = window.innerWidth, H = window.innerHeight;
+const camera = new THREE.PerspectiveCamera(55, W/H, 0.1, 200);
+camera.position.set(0, 8, 22);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+// Lights
+scene.add(new THREE.AmbientLight(0x112244, 2));
+const dir = new THREE.DirectionalLight(0x00ffe7, 1.5);
+dir.position.set(5, 15, 10);
+scene.add(dir);
+
+// Grid floor
+const gridHelper = new THREE.GridHelper(60, 30, 0x003344, 0x001122);
+gridHelper.position.y = -1.6;
+scene.add(gridHelper);
+
+// ─── RAM Block Data ─────────────────────────────────────────────────────────
+const COLS = 8, ROWS = 2;
+const TOTAL = COLS * ROWS;
+const GAP = 3.2;
+const BASE_ADDR = 0x1000;
+const TARGET_IDX = Math.floor(Math.random() * TOTAL);
+
+const ramData = Array.from({length: TOTAL}, (_, i) => ({
+  address: BASE_ADDR + i * 4,
+  value: `0x${(Math.floor(Math.random()*0xFFFF)).toString(16).toUpperCase().padStart(4,'0')}`,
+  label: `VAR_${String.fromCharCode(65 + i)}`,
+  isTarget: i === TARGET_IDX
+}));
+
+// ─── 3D Block Construction ──────────────────────────────────────────────────
+const blockMeshes = [];
+const labelSprites = [];
+
+const matDefault = new THREE.MeshStandardMaterial({ color: 0x00ffe7, metalness: 0.4, roughness: 0.5, transparent: true, opacity: 0.55 });
+const matSearched = new THREE.MeshStandardMaterial({ color: 0x4488ff, metalness: 0.3, roughness: 0.5, transparent: true, opacity: 0.7 });
+const matActive   = new THREE.MeshStandardMaterial({ color: 0xff6b35, metalness: 0.2, roughness: 0.3, transparent: true, opacity: 0.9, emissive: 0x441100 });
+const matFound    = new THREE.MeshStandardMaterial({ color: 0x39ff14, metalness: 0.1, roughness: 0.3, transparent: true, opacity: 1.0,  emissive: 0x0a3300 });
+
+const blockGeo = new THREE.BoxGeometry(2.4, 1.0, 1.6);
+const edgeGeo  = new THREE.EdgesGeometry(blockGeo);
+
+const startX = -(COLS - 1) * GAP / 2;
+const startZ = -(ROWS - 1) * GAP / 2;
+
+ramData.forEach((d, i) => {
+  const col = i % COLS, row = Math.floor(i / COLS);
+  const x = startX + col * GAP;
+  const z = startZ + row * GAP;
+
+  const mesh = new THREE.Mesh(blockGeo, matDefault.clone());
+  mesh.position.set(x, 0, z);
+  mesh.userData = { idx: i, origY: 0, ...d };
+  scene.add(mesh);
+
+  // Edge wireframe
+  const edges = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({ color: 0x00ffe7, transparent: true, opacity: 0.4 }));
+  mesh.add(edges);
+
+  blockMeshes.push(mesh);
+
+  // Floating address label (canvas sprite)
+  const sprite = makeTextSprite(`0x${d.address.toString(16).toUpperCase()}`, `${d.label}`);
+  sprite.position.set(x, 1.4, z);
+  scene.add(sprite);
+  labelSprites.push(sprite);
+});
+
+// ─── Pointer arrow (cone)
+const pointerGeo = new THREE.ConeGeometry(0.22, 0.7, 8);
+const pointerMat = new THREE.MeshStandardMaterial({ color: 0xff6b35, emissive: 0x882200 });
+const pointer = new THREE.Mesh(pointerGeo, pointerMat);
+pointer.rotation.x = Math.PI;
+pointer.position.set(blockMeshes[0].position.x, 2.2, blockMeshes[0].position.z);
+scene.add(pointer);
+
+// Beam (line from pointer down to block)
+const beamMat = new THREE.LineBasicMaterial({ color: 0xff6b35, transparent: true, opacity: 0.7 });
+let beamLine = null;
+
+function updateBeam(x, z) {
+  if (beamLine) scene.remove(beamLine);
+  const pts = [new THREE.Vector3(x, 2.0, z), new THREE.Vector3(x, 0.5, z)];
+  const beamGeo = new THREE.BufferGeometry().setFromPoints(pts);
+  beamLine = new THREE.Line(beamGeo, beamMat);
+  scene.add(beamLine);
+}
+updateBeam(blockMeshes[0].position.x, blockMeshes[0].position.z);
+
+// ─── Canvas Sprite Helper ───────────────────────────────────────────────────
+function makeTextSprite(addr, label) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 80;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 256, 80);
+  ctx.font = 'bold 22px monospace';
+  ctx.fillStyle = '#00ffe7';
+  ctx.textAlign = 'center';
+  ctx.fillText(addr, 128, 28);
+  ctx.font = '16px monospace';
+  ctx.fillStyle = '#aaffee88';
+  ctx.fillText(label, 128, 52);
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(2.4, 0.75, 1);
+  return sprite;
+}
+
+// ─── HUD Update ────────────────────────────────────────────────────────────
+function setHUD(idx, status, data) {
+  const offset = idx * 4;
+  document.getElementById('v-base').textContent   = '0x1000';
+  document.getElementById('v-offset').textContent = `+0x${offset.toString(16).toUpperCase().padStart(4,'0')}`;
+  document.getElementById('v-target').textContent = `0x${(BASE_ADDR + offset).toString(16).toUpperCase()}`;
+  document.getElementById('v-data').textContent   = data || '—';
+  document.getElementById('v-status').textContent = status;
+  document.getElementById('v-status').className   = 'info-val ' + (status === 'FOUND!' ? 'green' : status === 'SEARCHING...' ? 'highlight' : 'green');
+}
+
+function setStep(txt) {
+  document.getElementById('step-text').textContent = txt;
+  document.getElementById('step-desc').style.opacity = '1';
+  setTimeout(() => document.getElementById('step-desc').style.opacity = '0', 2000);
+}
+
+// ─── Search Animation ───────────────────────────────────────────────────────
+let searchRunning = false;
+let searchTimeout = null;
+function resetAll() {
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchRunning = false;
+  blockMeshes.forEach((m, i) => {
+    m.material.color.set(0x00ffe7);
+    m.material.opacity = 0.55;
+    m.material.emissive.set(0x000000);
+    m.position.y = 0;
+  });
+  pointer.position.set(blockMeshes[0].position.x, 2.2, blockMeshes[0].position.z);
+  updateBeam(blockMeshes[0].position.x, blockMeshes[0].position.z);
+  setHUD(0, 'READY', '—');
+  setStep('RAM blocks tayyar hain — SEARCH dabao');
+}
+
+function runSearch() {
+  if (searchRunning) return;
+  resetAll();
+  searchRunning = true;
+  setStep('Searching RAM with offset...');
+
+  function checkBlock(i) {
+    if (i >= TOTAL) { searchRunning = false; return; }
+
+    const mesh = blockMeshes[i];
+    const d = mesh.userData;
+    const px = mesh.position.x, pz = mesh.position.z;
+
+    // move pointer
+    pointer.position.set(px, 2.2, pz);
+    updateBeam(px, pz);
+    setHUD(i, 'SEARCHING...', d.value);
+
+    // highlight current
+    mesh.material.color.set(0xff6b35);
+    mesh.material.emissive.set(0x441100);
+    mesh.material.opacity = 0.95;
+    mesh.position.y = 0.3; // lift up
+
+    if (d.isTarget) {
+      searchTimeout = setTimeout(() => {
+        mesh.material.color.set(0x39ff14);
+        mesh.material.emissive.set(0x0a3300);
+        pointer.material.color.set(0x39ff14);
+        pointer.material.emissive.set(0x002200);
+        setHUD(i, 'FOUND!', d.value);
+        setStep(`✓ Data mila! Offset = 0x${(i*4).toString(16).toUpperCase()} → ${d.label} = ${d.value}`);
+        searchRunning = false;
+      }, 600);
+    } else {
+      searchTimeout = setTimeout(() => {
+        mesh.material.color.set(0x4488ff);
+        mesh.material.emissive.set(0x001133);
+        mesh.material.opacity = 0.7;
+        mesh.position.y = 0;
+        checkBlock(i + 1);
+      }, 550);
+    }
+  }
+
+  checkBlock(0);
+}
+
+// ─── Auto Play ─────────────────────────────────────────────────────────────
+let autoPlay = true;
+let autoTimer = null;
+
+function toggleAuto() {
+  autoPlay = !autoPlay;
+  document.getElementById('btn-auto').classList.toggle('active', autoPlay);
+  if (autoPlay) scheduleAuto();
+  else if (autoTimer) clearTimeout(autoTimer);
+}
+
+function scheduleAuto() {
+  if (!autoPlay) return;
+  autoTimer = setTimeout(() => {
+    resetAll();
+    setTimeout(() => {
+      runSearch();
+      // Next auto-run after search completes (~TOTAL * 550ms + 2s)
+      autoTimer = setTimeout(() => scheduleAuto(), TOTAL * 600 + 3000);
+    }, 800);
+  }, 3000);
+}
+scheduleAuto();
+
+// ─── Camera Orbit ──────────────────────────────────────────────────────────
+let camAngle = 0;
+const CAM_R = 22, CAM_Y = 9;
+
+// ─── Render Loop ───────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  // Slow orbit
+  camAngle += 0.003;
+  camera.position.x = Math.sin(camAngle) * CAM_R;
+  camera.position.z = Math.cos(camAngle) * CAM_R;
+  camera.position.y = CAM_Y + Math.sin(t * 0.3) * 1.5;
+  camera.lookAt(0, 0.5, 0);
+
+  // Pointer bob
+  pointer.position.y = 2.2 + Math.sin(t * 3) * 0.12;
+
+  // Subtle idle glow on blocks
+  blockMeshes.forEach((m, i) => {
+    if (m.material.color.getHex() === 0x00ffe7) {
+      m.material.opacity = 0.45 + 0.15 * Math.sin(t * 1.5 + i * 0.4);
+    }
+  });
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>

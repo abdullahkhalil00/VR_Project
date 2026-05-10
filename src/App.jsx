@@ -452,7 +452,7 @@ function App() {
           </ShellLayout>
         }
       />
-      <Route path="/vr" element={<ShellLayout title="VR"><PageCard className="vr-box"><a className=" as-link" href="/videos%20using%20code/index.html" target="_blank" rel="noreferrer">Go to VR Mode</a></PageCard></ShellLayout>} />
+      <Route path="/vr" element={<ShellLayout title="VR"><PageCard className="vr-box"><a className="as-link" href="/vr/1.html" target="_blank" rel="noreferrer">Go to VR Mode</a></PageCard></ShellLayout>} />
     </Routes>
   )
 }
